@@ -23,3 +23,19 @@ Simply adapt this function when addressing your own use case
 
 Have a look at the main template repository to get familiar with the template structure
 https://github.com/datavillage-me/cage-process-template
+
+## Infering event
+
+For testing the inference, you can send an event with that content:
+```
+{
+   "type": "INFER",
+   "data": {
+      "sepal length (cm)": 5.9,
+      "sepal width (cm)": 3.0;
+      "petal length (cm)": 5.1,
+      "petal width (cm)": 1.8,
+   }
+}
+```
+You should see in the log of the algorithm that it is categorize as a "virginica" Iris species

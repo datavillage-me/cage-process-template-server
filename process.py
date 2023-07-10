@@ -18,6 +18,7 @@ from dv_utils import default_settings, Client, audit_log
 from xgboost import XGBClassifier
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,6 @@ def event_processor(evt: dict):
 def generic_event_processor(evt: dict):
     # push an audit log to reccord for an event that is not understood
     audit_log("received an unhandled event", evt=evt_type)
-    pass
 
 
 def process_train_event(evt: dict):
@@ -75,6 +75,13 @@ def process_train_event(evt: dict):
    # save the model to the results location
    bst.save_model('/resources/outputs/model.json')
 
+
+   # make predictions on test dataset and verify accuracy
+   preds = bst.predict(X_test)
+   accuracy = accuracy_score(y_test, preds)
+ 
+   # log the accuracy of the new model for persistence
+   audit_log(f"Model was (re)trained and achieved an accuracy of {accuracy}", accuracy=accuracy)
 
 def process_predict_event(evt: dict):
    """
