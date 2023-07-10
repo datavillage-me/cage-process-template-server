@@ -6,3 +6,4 @@ openpyxl
 delta_sharing @ git+https://github.com/delta-io/delta-sharing@main#&subdirectory=python
 xgboost
 scikit-learn
+
