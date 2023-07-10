@@ -32,9 +32,9 @@ For testing the inference, you can send an event with that content:
    "type": "INFER",
    "data": {
       "sepal length (cm)": 5.9,
-      "sepal width (cm)": 3.0;
+      "sepal width (cm)": 3.0,
       "petal length (cm)": 5.1,
-      "petal width (cm)": 1.8,
+      "petal width (cm)": 1.8
    }
 }
 ```
