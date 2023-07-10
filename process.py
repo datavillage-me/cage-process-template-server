@@ -94,18 +94,18 @@ def process_predict_event(evt: dict):
    # load previously saved model
    bst.load_model('/resources/outputs/model.json')
    
-  # make predictions
-  preds = bst.predict(X_test)
+   # make predictions
+   preds = bst.predict(X_test)
 
-  # save prediction and truth in a dataframe
-  df = pd.DataFrame(X_test, columns=data["feature_names"])
-  df["pred"] = preds
-  df["pred"] = df["pred"].map(lambda x:data["target_names"][x])
-  df["truth"] = y_test
-  df["truth"] = df["truth"].map(lambda x:data["target_names"][x])
+   # save prediction and truth in a dataframe
+   df = pd.DataFrame(X_test, columns=data["feature_names"])
+   df["pred"] = preds
+   df["pred"] = df["pred"].map(lambda x:data["target_names"][x])
+   df["truth"] = y_test
+   df["truth"] = df["truth"].map(lambda x:data["target_names"][x])
   
-  # store predictions to excel
-  df.to_excel("/resources/outputs/batch_predictions.xlsx")
+   # store predictions to excel
+   df.to_excel("/resources/outputs/batch_predictions.xlsx")
 
 
 def process_infer_event(evt: dict):
