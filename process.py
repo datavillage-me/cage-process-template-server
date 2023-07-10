@@ -1,9 +1,23 @@
+"""
+This code demonstrate how to train a ML model and use it later for inference in the datavillage collaboration paradigm
+The code we follow is the main example of the XGBoost ML library
+https://xgboost.readthedocs.io/en/stable/get_started.html
+
+The case is simple and very comon in machine learning 101
+So you can really focus on how this example is modified to work in datavillage collaboration context
+
+"""
+
+
 import logging
 import time
 import requests
 import os
 import pandas as pd
 from dv_utils import default_settings, Client, audit_log 
+from xgboost import XGBClassifier
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger(__name__)
 
@@ -24,84 +38,110 @@ def event_processor(evt: dict):
 
     # dispatch events according to their type
     evt_type =evt.get("type", "")
-    if(evt_type == "QUOTE"):
-        # use the QUOTE event processor dedicated function
-        logger.info(f"use the update quote event processor")
-        update_quote_event_processor(evt)
+    if(evt_type == "TRAIN"):
+        process_train_event(evt)
+    elif(evt_type == "PREDICT"):
+        process_predict_event(evt)
+    elif(evt_type == "INFER"):
+        process_infer_event(evt)     
     else:
-        # use the GENERIC event processor function, that basicaly does nothing
-        logger.info(f"Unhandled message type, use the generic event processor")
         generic_event_processor(evt)
 
 
 def generic_event_processor(evt: dict):
+    # push an audit log to reccord for an event that is not understood
+    audit_log("received an unhandled event", evt=evt_type)
     pass
 
 
-def update_quote_event_processor(evt: dict):
-   client = Client()
+def process_train_event(evt: dict):
+   """
+   Train an XGBoost Classifier model using the logic given in 
+   """
 
-   # push an audit log to reccord for a long duration (6months) that a quote event has been received and processed
-   audit_log("received a quote event", evt=evt_type)
+   # load the training data from scikit learn library
+   # we could also have loaded the data from an external API or from a local file (uploaded in the data  collaboration)
+   data = load_iris()
+
+   # split the data in train and test samples
+   X_train, X_test, y_train, y_test = train_test_split(data['data'], data['target'], test_size=.2)
+
+   # create model instance
+   bst = XGBClassifier(n_estimators=2, max_depth=2, learning_rate=1, objective='binary:logistic')
+
+   # fit model using only training data
+   bst.fit(X_train, y_train)
+
+   # save the model to the results location
+   bst.save_model('/resources/outputs/model.json')
 
 
-   # retrieve environment variables to handle the quote events
-   # the path of the file containg the stock market shares to get quote for
-   # the authentication key needed to connect to the FMP financial API
-   STOCK_XL_PATH = os.environ.get("STOCK_XL_PATH", "")
-   FMP_API_KEY = os.environ.get("FMP_API_KEY", "")
-   if(not STOCK_XL_PATH):
-       raise RuntimeError("STOCK_XL_PATH environment variable is not defined")
-   if(not FMP_API_KEY):
-       raise RuntimeError("FMP_API_KEY environment variable is not defined")
+def process_predict_event(evt: dict):
+   """
+   Make prediction using the previously train model on the test dataset 
+   """
 
-   # get the stocks to quote from xlsx file
-   stocks = pd.read_excel(STOCK_XL_PATH)
-   stocks = stocks.set_index("symbol")
+   # load the training data from scikit learn library
+   # we could also have loaded the data from an external API or from a local file (uploaded in the data  collaboration)
+   data = load_iris()
 
-   # get the quotes for the symbol through an API call to FinancialModelingPrep
-   symbols = ",".join(stocks.index)
-   stock_response = requests.get(f"https://financialmodelingprep.com/api/v3/quote-short/{symbols}?apikey={FMP_API_KEY}")
-   stock_quotes = stock_response.json()
+   # split the data in train and test samples
+   X_train, X_test, y_train, y_test = train_test_split(data['data'], data['target'], test_size=.2)
 
-   # merge quotes with symbols in a unified dataframe and possibly save it to file
-   # instead of saving the results to a file we would also have pushed the computed data directly to an output API, a database or deltashare service.
-   # to keep the template demo simple, we'll just output an excel file
-   stocks = stocks.join(pd.DataFrame(stock_quotes).set_index("symbol") )
-   try:
-       # store the output file in /resources/outputs directory, to make it available for download later through the collaboration space APIs
-       stocks.to_excel("/resources/outputs/stocks.xlsx")
-   except:
-      pass
+   # create model instance
+   bst = XGBClassifier()
+
+   # load previously saved model
+   bst.load_model('/resources/outputs/model.json')
+   
+  # make predictions
+  preds = bst.predict(X_test)
+
+  # save prediction and truth in a dataframe
+  df = pd.DataFrame(X_test, columns=data["feature_names"])
+  df["pred"] = preds
+  df["pred"] = df["pred"].map(lambda x:data["target_names"][x])
+  df["truth"] = y_test
+  df["truth"] = df["truth"].map(lambda x:data["target_names"][x])
   
+  # store predictions to excel
+  df.to_excel("/resources/outputs/batch_predictions.xlsx")
 
 
-   # The rest of the code bellow is only necessary if you want to push results in the SOLID pods of the customers associated with this collaboration space
-   # Not all use cases requires interaction with the end users, so you can ignore what is bellow if you are not interested in writting to the user's SOLID pod
+def process_infer_event(evt: dict):
+
+   # list features
+   features = [
+     'sepal length (cm)',
+     'sepal width (cm)',
+     'petal length (cm)',
+     'petal width (cm)'
+   ]
+
+   target_names = ['setosa', 'versicolor', 'virginica']
 
 
-   # prepare rdf file with the quotes following schema.org onthology
-   rdf_content = "".join([f"""
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Intangible/FinancialQuote> .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/additionalType> <https://schema.org/FinancialProduct> .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/tickerSymbol> "{r["symbol"]}" .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/exchange> "{r["exchange"]}" .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/name> "{r["name"]}" .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/price> "{r["price"]}"^^<http://www.w3.org/2001/XMLSchema#float> .
-<https://www.google.com/finance/quote/{r["exchange"]}:{r["symbol"]}> <https://schema.org/volume> "{r["volume"]}"^^<http://www.w3.org/2001/XMLSchema#float> .
-   """ for r in stocks.reset_index().to_dict("records")])
-   logger.info(f"Generated RDF content:\n{rdf_content}")
+   # retrieve feature data from event
+   data = evt.get("data",None)
+   X = []
+   for feature in features:
+      if not feature in data:
+          raise Exception(f"received an inference event without '{feature}' feature")
+      X += [data[feature]]
 
-   # Use userIds provided in the event, or get all active users for this collaboration
-   user_ids = evt.get("userIds",[]) or client.get_users()
+   # create model instance
+   bst = XGBClassifier()
 
-   # Save the stock quotes in the data vault/pod of the concerned users
-   logger.info(f"Processing {len(user_ids)} users")
-   for user_id in user_ids:
-      try:
-         # for the sake of this example, write some RDF with the number of user statements into the user's pod
-         client.write_results(user_id, "inferences", rdf_content)
+   # load previously saved model
+   bst.load_model('/resources/outputs/model.json')
 
-      # pylint: disable=broad-except
-      except Exception as err:
-         logger.warning(f"Failed to process user {user_id} : {err}")
+   # make a model inference for the given features
+   pred = bst.predict([X])[0]
+
+   # get prediction name
+   pred_name = target_names[pred]
+
+   # log the inference result
+   # another approach would be to push it through an API endpoint or to save it to file
+   logger.info(f"Infering {pred_name} for data {data}")
+
