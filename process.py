@@ -98,7 +98,8 @@ def process_predict_event(evt: dict):
    # create model instance
    bst = XGBClassifier()
 
-   # load previously saved model
+   # load a previously saved model from TRAIN step from the /resources/outputs directory 
+   # we could also have load a model from the /resources/inputs/ directory that would have been uploaded from a Data Provider of the collaboration
    bst.load_model('/resources/outputs/model.json')
    
    # make predictions
