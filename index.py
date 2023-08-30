@@ -26,7 +26,7 @@ from dv_utils import default_settings, Client, audit_log
 APP_ID = os.environ.get("DV_CAGE_ID",None)
 ROOT_PATH = ""
 if "DV_CAGE_ID" in os.environ:
-    ROOT_PATH = "/" + os.environ["DV_CAGE_ID"].split("-")[-1]
+    ROOT_PATH = "/" + os.environ["DV_CAGE_ID"].split("-")[-1]+"-server"
 else:
     #    ROOT_PATH = "/CAGE_ID"
     ROOT_PATH = ""
