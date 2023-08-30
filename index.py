@@ -55,7 +55,7 @@ async def push_log(log: str = "empty log"):
     """
     Example of a route receiving a log string and pushing it to the log queue
     """
-    audit_log(APP_ID, f"upload_data {in_file.filename}")
+    audit_log(f"upload_data {in_file.filename}")
     return {"message": f"The log '{log}' was properly pushed to the log stack"}
 
 @app.get("/users")
@@ -73,13 +73,13 @@ async def web_server():
     """
     Start the web server
     """
-    audit_log(APP_ID, "web server starting")
+    audit_log("web server starting")
 
     config = uvicorn.Config(app, port=80, host="0.0.0.0", reload=True)
     server = uvicorn.Server(config)
     await server.serve()
 
-    audit_log(APP_ID, "web server closing")
+    audit_log("web server closing")
 
 
 if __name__ == "__main__":
