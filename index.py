@@ -74,8 +74,7 @@ async def web_server():
     Start the web server
     """
     audit_log("web server starting")
-
-    config = uvicorn.Config(app, port=80, host="0.0.0.0", reload=True)
+    config = uvicorn.Config(app, port=443, host="0.0.0.0", reload=True, ssl_certfile=os.environ["TLS_CERTFILE"], ssl_keyfile=os.environ["TLS_KEYFILE"])
     server = uvicorn.Server(config)
     await server.serve()
 
