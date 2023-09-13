@@ -18,6 +18,11 @@ it implements 3 types of request handling examples
 All these steps are defined in distinct functions of the process.py file.
 Simply adapt this function when addressing your own use case
 
+## TLS
+
+The server is running on port 443 with SSL activated.
+The SSL key, certificates and CA cert are mounted on the cage at location provided through the following environment variables: TLS_KEYFILE, TLS_CERTFILE, TLS_CAFILE
+
 ## Content of this repo
 
 Have a look at the main template repository to get familiar with the template structure
